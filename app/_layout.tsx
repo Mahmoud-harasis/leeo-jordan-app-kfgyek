@@ -80,28 +80,35 @@ export default function RootLayout() {
               headerShadowVisible: false,
             }}
           >
+            {/* Main app tabs */}
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            
+            {/* Onboarding */}
             <Stack.Screen 
-              name="modal" 
+              name="onboarding" 
               options={{ 
-                presentation: "modal",
-                title: "Modal",
+                headerShown: false,
+                gestureEnabled: false,
+              }} 
+            />
+            
+            {/* Authentication */}
+            <Stack.Screen 
+              name="login" 
+              options={{ 
+                title: "Login",
+                headerShown: true,
               }} 
             />
             <Stack.Screen 
-              name="formsheet" 
+              name="register" 
               options={{ 
-                presentation: "formSheet",
-                title: "Form Sheet",
+                title: "Register",
+                headerShown: true,
               }} 
             />
-            <Stack.Screen 
-              name="transparent-modal" 
-              options={{ 
-                presentation: "transparentModal",
-                title: "Transparent Modal",
-              }} 
-            />
+            
+            {/* Shopping */}
             <Stack.Screen 
               name="product/[id]" 
               options={{ 
@@ -123,24 +130,45 @@ export default function RootLayout() {
                 headerShown: true,
               }} 
             />
+            
+            {/* Orders & Tracking */}
             <Stack.Screen 
-              name="login" 
+              name="orders" 
               options={{ 
-                title: "Login",
+                title: "My Orders",
                 headerShown: true,
               }} 
             />
+            
+            {/* Settings */}
             <Stack.Screen 
-              name="register" 
+              name="settings" 
               options={{ 
-                title: "Register",
+                title: "Settings",
                 headerShown: true,
               }} 
             />
+            
+            {/* Modals */}
             <Stack.Screen 
-              name="onboarding" 
+              name="modal" 
               options={{ 
-                headerShown: false,
+                presentation: "modal",
+                title: "Modal",
+              }} 
+            />
+            <Stack.Screen 
+              name="formsheet" 
+              options={{ 
+                presentation: "formSheet",
+                title: "Form Sheet",
+              }} 
+            />
+            <Stack.Screen 
+              name="transparent-modal" 
+              options={{ 
+                presentation: "transparentModal",
+                title: "Transparent Modal",
               }} 
             />
           </Stack>

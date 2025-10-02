@@ -1,6 +1,9 @@
 
+import { colors, commonStyles, spacing, borderRadius, shadows, typography } from "@/styles/commonStyles";
+import { IconSymbol } from "@/components/IconSymbol";
 import React, { useState } from "react";
-import { Stack, Link, router } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "@react-navigation/native";
 import { 
   ScrollView, 
   Pressable, 
@@ -10,250 +13,479 @@ import {
   TextInput,
   Image,
   Platform,
-  FlatList
+  FlatList,
+  Dimensions,
+  RefreshControl,
 } from "react-native";
-import { IconSymbol } from "@/components/IconSymbol";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useTheme } from "@react-navigation/native";
-import { colors, commonStyles, spacing, borderRadius, shadows } from "@/styles/commonStyles";
+import { Stack, Link, router } from "expo-router";
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  interpolate,
+} from 'react-native-reanimated';
 
-// Mock data for categories
-const categories = [
-  { id: '1', name: 'Electronics', icon: 'tv', color: '#007AFF' },
-  { id: '2', name: 'Fashion', icon: 'tshirt', color: '#FF9500' },
-  { id: '3', name: 'Home', icon: 'house', color: '#34C759' },
-  { id: '4', name: 'Sports', icon: 'figure.run', color: '#FF3B30' },
-  { id: '5', name: 'Books', icon: 'book', color: '#5856D6' },
-  { id: '6', name: 'Beauty', icon: 'heart', color: '#FF2D92' },
+const { width } = Dimensions.get('window');
+
+interface Category {
+  id: string;
+  name: string;
+  nameAr: string;
+  icon: string;
+  color: string;
+  productCount: number;
+}
+
+interface Product {
+  id: string;
+  name: string;
+  nameAr: string;
+  price: number;
+  originalPrice?: number;
+  rating: number;
+  reviewCount: number;
+  image: string;
+  badge?: 'new' | 'sale' | 'hot' | 'exclusive';
+  discount?: number;
+}
+
+interface Banner {
+  id: string;
+  title: string;
+  titleAr: string;
+  subtitle: string;
+  subtitleAr: string;
+  image: string;
+  color: string;
+  action: string;
+}
+
+const categories: Category[] = [
+  { id: '1', name: 'Electronics', nameAr: 'إلكترونيات', icon: 'iphone', color: '#4A90E2', productCount: 245 },
+  { id: '2', name: 'Fashion', nameAr: 'أزياء', icon: 'tshirt.fill', color: '#F5A623', productCount: 189 },
+  { id: '3', name: 'Home & Garden', nameAr: 'منزل وحديقة', icon: 'house.fill', color: '#7ED321', productCount: 156 },
+  { id: '4', name: 'Sports', nameAr: 'رياضة', icon: 'figure.run', color: '#D0021B', productCount: 98 },
+  { id: '5', name: 'Books', nameAr: 'كتب', icon: 'book.fill', color: '#9013FE', productCount: 234 },
+  { id: '6', name: 'Beauty', nameAr: 'جمال', icon: 'heart.fill', color: '#E91E63', productCount: 167 },
 ];
 
-// Mock data for featured products
-const featuredProducts = [
+const featuredProducts: Product[] = [
   {
     id: '1',
-    name: 'iPhone 15 Pro',
-    price: 'JD 1,199',
-    originalPrice: 'JD 1,299',
-    image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=300&h=300&fit=crop',
+    name: 'Wireless Headphones Pro',
+    nameAr: 'سماعات لاسلكية برو',
+    price: 89.99,
+    originalPrice: 129.99,
     rating: 4.8,
-    discount: '8%',
+    reviewCount: 124,
+    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=300&fit=crop',
+    badge: 'sale',
+    discount: 31,
   },
   {
     id: '2',
-    name: 'Nike Air Max',
-    price: 'JD 89',
-    originalPrice: 'JD 120',
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop',
-    rating: 4.6,
-    discount: '26%',
+    name: 'Smart Watch Series 8',
+    nameAr: 'ساعة ذكية سلسلة 8',
+    price: 299.99,
+    rating: 4.9,
+    reviewCount: 89,
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=300&h=300&fit=crop',
+    badge: 'new',
   },
   {
     id: '3',
-    name: 'MacBook Pro',
-    price: 'JD 2,499',
-    originalPrice: null,
-    image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=300&h=300&fit=crop',
-    rating: 4.9,
-    discount: null,
+    name: 'Premium Coffee Maker',
+    nameAr: 'صانعة قهوة فاخرة',
+    price: 159.99,
+    originalPrice: 199.99,
+    rating: 4.7,
+    reviewCount: 67,
+    image: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=300&h=300&fit=crop',
+    badge: 'hot',
+    discount: 20,
   },
   {
     id: '4',
-    name: 'Samsung TV 55"',
-    price: 'JD 699',
-    originalPrice: 'JD 899',
-    image: 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=300&h=300&fit=crop',
-    rating: 4.5,
-    discount: '22%',
+    name: 'Bluetooth Speaker',
+    nameAr: 'مكبر صوت بلوتوث',
+    price: 79.99,
+    rating: 4.6,
+    reviewCount: 156,
+    image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=300&h=300&fit=crop',
+    badge: 'exclusive',
+  },
+];
+
+const banners: Banner[] = [
+  {
+    id: '1',
+    title: 'Winter Sale',
+    titleAr: 'تخفيضات الشتاء',
+    subtitle: 'Up to 70% off on selected items',
+    subtitleAr: 'خصم يصل إلى 70% على منتجات مختارة',
+    image: 'https://images.unsplash.com/photo-1607083206869-4c7672e72a8a?w=400&h=200&fit=crop',
+    color: '#FF6B6B',
+    action: 'shop_sale',
+  },
+  {
+    id: '2',
+    title: 'New Arrivals',
+    titleAr: 'وصولات جديدة',
+    subtitle: 'Discover the latest trends',
+    subtitleAr: 'اكتشف أحدث الصيحات',
+    image: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=200&fit=crop',
+    color: '#4ECDC4',
+    action: 'shop_new',
   },
 ];
 
 export default function HomeScreen() {
   const theme = useTheme();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isArabic, setIsArabic] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  // Mock user data
+  const user = {
+    name: 'Ahmed',
+    nameAr: 'أحمد',
+    loyaltyPoints: 1250,
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    // Simulate API call
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
+
+  const getBadgeColor = (badge: Product['badge']) => {
+    switch (badge) {
+      case 'new':
+        return colors.success;
+      case 'sale':
+        return colors.primaryRed;
+      case 'hot':
+        return colors.warning;
+      case 'exclusive':
+        return '#9C27B0';
+      default:
+        return colors.textSecondary;
+    }
+  };
+
+  const getBadgeText = (badge: Product['badge']) => {
+    const badgeMap = {
+      new: { en: 'NEW', ar: 'جديد' },
+      sale: { en: 'SALE', ar: 'تخفيض' },
+      hot: { en: 'HOT', ar: 'مميز' },
+      exclusive: { en: 'EXCLUSIVE', ar: 'حصري' },
+    };
+    return badge ? (isArabic ? badgeMap[badge].ar : badgeMap[badge].en) : '';
+  };
 
   const renderHeaderRight = () => (
-    <View style={styles.headerActions}>
-      <Pressable
-        onPress={() => router.push('/cart')}
-        style={[styles.headerButton, { backgroundColor: colors.card }]}
-      >
-        <IconSymbol name="cart" color={colors.textPrimary} size={20} />
+    <View style={styles.headerRight}>
+      <Pressable onPress={() => setIsArabic(!isArabic)} style={styles.headerButton}>
+        <Text style={styles.languageText}>
+          {isArabic ? 'EN' : 'عر'}
+        </Text>
+      </Pressable>
+      <Pressable onPress={() => router.push('/cart')} style={styles.headerButton}>
+        <IconSymbol name="cart.fill" size={24} color={colors.textPrimary} />
         <View style={styles.cartBadge}>
           <Text style={styles.cartBadgeText}>3</Text>
         </View>
       </Pressable>
-      <Pressable
-        onPress={() => router.push('/(tabs)/profile')}
-        style={[styles.headerButton, { backgroundColor: colors.card }]}
-      >
-        <IconSymbol name="person.circle" color={colors.textPrimary} size={20} />
-      </Pressable>
     </View>
   );
 
-  const renderCategory = ({ item }: { item: typeof categories[0] }) => (
-    <Pressable style={[styles.categoryCard, { backgroundColor: colors.card }]}>
-      <View style={[styles.categoryIcon, { backgroundColor: item.color }]}>
-        <IconSymbol name={item.icon as any} color="white" size={24} />
-      </View>
-      <Text style={[styles.categoryName, { color: colors.textPrimary }]}>{item.name}</Text>
+  const renderBanner = ({ item, index }: { item: Banner; index: number }) => (
+    <Pressable style={styles.bannerContainer}>
+      <LinearGradient
+        colors={[item.color, `${item.color}80`]}
+        style={styles.banner}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.bannerContent}>
+          <Text style={styles.bannerTitle}>
+            {isArabic ? item.titleAr : item.title}
+          </Text>
+          <Text style={styles.bannerSubtitle}>
+            {isArabic ? item.subtitleAr : item.subtitle}
+          </Text>
+          <Pressable style={styles.bannerButton}>
+            <Text style={styles.bannerButtonText}>
+              {isArabic ? 'تسوق الآن' : 'Shop Now'}
+            </Text>
+            <IconSymbol name="arrow.right" size={16} color={colors.textPrimary} />
+          </Pressable>
+        </View>
+      </LinearGradient>
     </Pressable>
   );
 
-  const renderProduct = ({ item }: { item: typeof featuredProducts[0] }) => (
+  const renderCategory = ({ item }: { item: Category }) => (
+    <Pressable style={styles.categoryCard}>
+      <LinearGradient
+        colors={[item.color, `${item.color}80`]}
+        style={styles.categoryGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <IconSymbol name={item.icon as any} size={32} color={colors.textPrimary} />
+      </LinearGradient>
+      <Text style={styles.categoryName} numberOfLines={2}>
+        {isArabic ? item.nameAr : item.name}
+      </Text>
+      <Text style={styles.categoryCount}>
+        {item.productCount} {isArabic ? 'منتج' : 'items'}
+      </Text>
+    </Pressable>
+  );
+
+  const renderProduct = ({ item }: { item: Product }) => (
     <Pressable 
-      style={[styles.productCard, { backgroundColor: colors.card }]}
+      style={styles.productCard}
       onPress={() => router.push(`/product/${item.id}`)}
     >
-      {item.discount && (
-        <View style={styles.discountBadge}>
-          <Text style={styles.discountText}>{item.discount}</Text>
-        </View>
-      )}
-      <Image source={{ uri: item.image }} style={styles.productImage} />
+      <View style={styles.productImageContainer}>
+        <Image source={{ uri: item.image }} style={styles.productImage} />
+        {item.badge && (
+          <View style={[styles.productBadge, { backgroundColor: getBadgeColor(item.badge) }]}>
+            <Text style={styles.productBadgeText}>
+              {getBadgeText(item.badge)}
+            </Text>
+          </View>
+        )}
+        <Pressable style={styles.favoriteButton}>
+          <IconSymbol name="heart" size={20} color={colors.textSecondary} />
+        </Pressable>
+      </View>
+      
       <View style={styles.productInfo}>
-        <Text style={[styles.productName, { color: colors.textPrimary }]} numberOfLines={2}>
-          {item.name}
+        <Text style={styles.productName} numberOfLines={2}>
+          {isArabic ? item.nameAr : item.name}
         </Text>
+        
         <View style={styles.ratingContainer}>
-          <IconSymbol name="star.fill" color="#FFD700" size={12} />
-          <Text style={[styles.rating, { color: colors.textSecondary }]}>{item.rating}</Text>
+          <IconSymbol name="star.fill" size={14} color={colors.warning} />
+          <Text style={styles.ratingText}>{item.rating}</Text>
+          <Text style={styles.reviewCount}>({item.reviewCount})</Text>
         </View>
+        
         <View style={styles.priceContainer}>
-          <Text style={[styles.price, { color: colors.primaryRed }]}>{item.price}</Text>
+          <Text style={styles.price}>{item.price.toFixed(2)} JOD</Text>
           {item.originalPrice && (
-            <Text style={[styles.originalPrice, { color: colors.textSecondary }]}>
-              {item.originalPrice}
+            <Text style={styles.originalPrice}>
+              {item.originalPrice.toFixed(2)} JOD
             </Text>
           )}
         </View>
+        
+        {item.discount && (
+          <Text style={styles.discountText}>
+            {isArabic ? `وفر ${item.discount}%` : `Save ${item.discount}%`}
+          </Text>
+        )}
       </View>
     </Pressable>
   );
 
   return (
-    <>
+    <SafeAreaView style={commonStyles.safeArea}>
       <Stack.Screen
         options={{
-          title: "Leeo - Jordan",
+          headerShown: true,
+          title: '',
+          headerLeft: () => (
+            <View style={styles.headerLeft}>
+              <Text style={styles.greeting}>
+                {isArabic ? `مرحباً، ${user.nameAr}` : `Hello, ${user.name}`}
+              </Text>
+              <View style={styles.loyaltyContainer}>
+                <IconSymbol name="star.fill" size={16} color={colors.primaryRed} />
+                <Text style={styles.loyaltyPoints}>
+                  {user.loyaltyPoints} {isArabic ? 'نقطة' : 'pts'}
+                </Text>
+              </View>
+            </View>
+          ),
           headerRight: renderHeaderRight,
-          headerStyle: {
-            backgroundColor: colors.background,
-          },
-          headerTintColor: colors.textPrimary,
         }}
       />
-      <SafeAreaView style={[commonStyles.safeArea]}>
-        <ScrollView 
-          style={styles.container}
-          showsVerticalScrollIndicator={false}
-          contentInsetAdjustmentBehavior="automatic"
-        >
-          {/* Search Bar */}
-          <View style={[commonStyles.searchBar, { backgroundColor: colors.card }]}>
-            <IconSymbol name="magnifyingglass" color={colors.textSecondary} size={20} />
+
+      <ScrollView 
+        style={styles.container} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primaryRed}
+            colors={[colors.primaryRed]}
+          />
+        }
+      >
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <View style={styles.searchBar}>
+            <IconSymbol name="magnifyingglass" size={20} color={colors.textSecondary} />
             <TextInput
-              style={[styles.searchInput, { color: colors.textPrimary }]}
-              placeholder="Search products in Jordan..."
+              style={styles.searchInput}
+              placeholder={isArabic ? 'ابحث عن المنتجات...' : 'Search products...'}
               placeholderTextColor={colors.textSecondary}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
               <Pressable onPress={() => setSearchQuery('')}>
-                <IconSymbol name="xmark.circle.fill" color={colors.textSecondary} size={20} />
+                <IconSymbol name="xmark.circle.fill" size={20} color={colors.textSecondary} />
               </Pressable>
             )}
           </View>
-
-          {/* Welcome Banner */}
-          <LinearGradient
-            colors={[colors.primaryRed, '#B91C1C']}
-            style={styles.welcomeBanner}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+          
+          {/* Guest Checkout Button */}
+          <Pressable 
+            style={styles.guestButton}
+            onPress={() => router.push('/login')}
           >
-            <View style={styles.bannerContent}>
-              <Text style={styles.welcomeTitle}>مرحباً بك في Leeo</Text>
-              <Text style={styles.welcomeSubtitle}>Welcome to Jordan's #1 Shopping App</Text>
-              <Text style={styles.welcomeDescription}>
-                Discover amazing products with fast delivery across Jordan
+            <IconSymbol name="bolt.fill" size={20} color={colors.primaryRed} />
+          </Pressable>
+        </View>
+
+        {/* Banners */}
+        <View style={styles.section}>
+          <FlatList
+            data={banners}
+            renderItem={renderBanner}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            pagingEnabled
+            snapToInterval={width - spacing.md * 2}
+            decelerationRate="fast"
+            contentContainerStyle={styles.bannersContainer}
+          />
+        </View>
+
+        {/* Categories */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {isArabic ? 'الفئات' : 'Categories'}
+            </Text>
+            <Pressable>
+              <Text style={styles.seeAllText}>
+                {isArabic ? 'عرض الكل' : 'See All'}
               </Text>
-            </View>
-            <View style={styles.bannerIcon}>
-              <IconSymbol name="gift" color="white" size={40} />
-            </View>
-          </LinearGradient>
-
-          {/* Categories Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={[commonStyles.heading, { color: colors.textPrimary }]}>Categories</Text>
-              <Pressable>
-                <Text style={[styles.seeAll, { color: colors.primaryRed }]}>See All</Text>
-              </Pressable>
-            </View>
-            <FlatList
-              data={categories}
-              renderItem={renderCategory}
-              keyExtractor={(item) => item.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.categoriesList}
-            />
+            </Pressable>
           </View>
+          
+          <FlatList
+            data={categories}
+            renderItem={renderCategory}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.categoriesContainer}
+          />
+        </View>
 
-          {/* Featured Products Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={[commonStyles.heading, { color: colors.textPrimary }]}>Featured Products</Text>
-              <Pressable>
-                <Text style={[styles.seeAll, { color: colors.primaryRed }]}>See All</Text>
-              </Pressable>
-            </View>
-            <FlatList
-              data={featuredProducts}
-              renderItem={renderProduct}
-              keyExtractor={(item) => item.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.productsList}
-            />
+        {/* Featured Products */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {isArabic ? 'منتجات مميزة' : 'Featured Products'}
+            </Text>
+            <Pressable>
+              <Text style={styles.seeAllText}>
+                {isArabic ? 'عرض الكل' : 'See All'}
+              </Text>
+            </Pressable>
           </View>
+          
+          <FlatList
+            data={featuredProducts}
+            renderItem={renderProduct}
+            keyExtractor={(item) => item.id}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.productsContainer}
+          />
+        </View>
 
-          {/* Quick Actions */}
-          <View style={styles.section}>
-            <Text style={[commonStyles.heading, { color: colors.textPrimary }]}>Quick Actions</Text>
-            <View style={styles.quickActions}>
-              <Pressable 
-                style={[styles.quickActionCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/login')}
-              >
-                <IconSymbol name="person.badge.plus" color={colors.primaryRed} size={24} />
-                <Text style={[styles.quickActionText, { color: colors.textPrimary }]}>Sign Up</Text>
-              </Pressable>
-              <Pressable 
-                style={[styles.quickActionCard, { backgroundColor: colors.card }]}
-                onPress={() => router.push('/cart')}
-              >
-                <IconSymbol name="cart.badge.plus" color={colors.primaryRed} size={24} />
-                <Text style={[styles.quickActionText, { color: colors.textPrimary }]}>Guest Order</Text>
-              </Pressable>
-              <Pressable 
-                style={[styles.quickActionCard, { backgroundColor: colors.card }]}
-              >
-                <IconSymbol name="location" color={colors.primaryRed} size={24} />
-                <Text style={[styles.quickActionText, { color: colors.textPrimary }]}>Track Order</Text>
-              </Pressable>
-            </View>
+        {/* Recommended Products */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>
+              {isArabic ? 'موصى لك' : 'Recommended for You'}
+            </Text>
+            <Pressable>
+              <Text style={styles.seeAllText}>
+                {isArabic ? 'عرض الكل' : 'See All'}
+              </Text>
+            </Pressable>
           </View>
+          
+          <FlatList
+            data={featuredProducts.slice().reverse()}
+            renderItem={renderProduct}
+            keyExtractor={(item) => `rec_${item.id}`}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.productsContainer}
+          />
+        </View>
 
-          {/* Bottom Padding for FloatingTabBar */}
-          <View style={{ height: Platform.OS !== 'ios' ? 100 : 20 }} />
-        </ScrollView>
-      </SafeAreaView>
-    </>
+        {/* Quick Actions */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {isArabic ? 'إجراءات سريعة' : 'Quick Actions'}
+          </Text>
+          
+          <View style={styles.quickActionsGrid}>
+            <Pressable 
+              style={styles.quickActionCard}
+              onPress={() => router.push('/orders')}
+            >
+              <IconSymbol name="list.bullet" size={24} color={colors.primaryRed} />
+              <Text style={styles.quickActionText}>
+                {isArabic ? 'طلباتي' : 'My Orders'}
+              </Text>
+            </Pressable>
+            
+            <Pressable style={styles.quickActionCard}>
+              <IconSymbol name="heart.fill" size={24} color={colors.primaryRed} />
+              <Text style={styles.quickActionText}>
+                {isArabic ? 'المفضلة' : 'Wishlist'}
+              </Text>
+            </Pressable>
+            
+            <Pressable style={styles.quickActionCard}>
+              <IconSymbol name="percent" size={24} color={colors.primaryRed} />
+              <Text style={styles.quickActionText}>
+                {isArabic ? 'العروض' : 'Deals'}
+              </Text>
+            </Pressable>
+            
+            <Pressable 
+              style={styles.quickActionCard}
+              onPress={() => router.push('/settings')}
+            >
+              <IconSymbol name="gearshape.fill" size={24} color={colors.primaryRed} />
+              <Text style={styles.quickActionText}>
+                {isArabic ? 'الإعدادات' : 'Settings'}
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -262,197 +494,299 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  headerActions: {
+  
+  // Header styles
+  headerLeft: {
+    flex: 1,
+  },
+  greeting: {
+    fontSize: 18,
+    fontFamily: typography.fontFamilyBold,
+    color: colors.textPrimary,
+  },
+  loyaltyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
+    marginTop: 2,
+  },
+  loyaltyPoints: {
+    fontSize: 14,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.primaryRed,
+    marginLeft: spacing.xs,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   headerButton: {
     padding: spacing.sm,
-    borderRadius: borderRadius.sm,
+    marginLeft: spacing.xs,
     position: 'relative',
+  },
+  languageText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.textPrimary,
   },
   cartBadge: {
     position: 'absolute',
-    top: 2,
-    right: 2,
+    top: 4,
+    right: 4,
     backgroundColor: colors.primaryRed,
     borderRadius: 10,
-    minWidth: 16,
-    height: 16,
+    minWidth: 20,
+    height: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cartBadgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '600',
+    fontSize: 12,
+    fontFamily: typography.fontFamilyBold,
+    color: colors.textPrimary,
+  },
+
+  // Search styles
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    marginRight: spacing.sm,
+    ...shadows.small,
   },
   searchInput: {
     flex: 1,
+    fontSize: 16,
+    color: colors.textPrimary,
+    fontFamily: typography.fontFamily,
     marginLeft: spacing.sm,
-    fontSize: 16,
-    fontFamily: 'Inter_400Regular',
   },
-  welcomeBanner: {
-    marginHorizontal: spacing.md,
-    marginVertical: spacing.sm,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    flexDirection: 'row',
-    alignItems: 'center',
-    ...shadows.medium,
+  guestButton: {
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.lg,
+    padding: spacing.md,
+    ...shadows.small,
   },
-  bannerContent: {
-    flex: 1,
-  },
-  welcomeTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: 'white',
-    marginBottom: spacing.xs,
-    fontFamily: 'Inter_700Bold',
-  },
-  welcomeSubtitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'white',
-    marginBottom: spacing.xs,
-    fontFamily: 'Inter_500Medium',
-  },
-  welcomeDescription: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontFamily: 'Inter_400Regular',
-  },
-  bannerIcon: {
-    marginLeft: spacing.md,
-  },
+
+  // Section styles
   section: {
-    marginVertical: spacing.md,
+    paddingVertical: spacing.md,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
-  seeAll: {
-    fontSize: 14,
-    fontWeight: '500',
-    fontFamily: 'Inter_500Medium',
+  sectionTitle: {
+    fontSize: 20,
+    fontFamily: typography.fontFamilyBold,
+    color: colors.textPrimary,
   },
-  categoriesList: {
+  seeAllText: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.primaryRed,
+  },
+
+  // Banner styles
+  bannersContainer: {
+    paddingHorizontal: spacing.md,
+  },
+  bannerContainer: {
+    width: width - spacing.md * 2,
+    marginRight: spacing.md,
+  },
+  banner: {
+    height: 160,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    justifyContent: 'center',
+    ...shadows.medium,
+  },
+  bannerContent: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  bannerTitle: {
+    fontSize: 24,
+    fontFamily: typography.fontFamilyBold,
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
+  },
+  bannerSubtitle: {
+    fontSize: 16,
+    fontFamily: typography.fontFamily,
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginBottom: spacing.md,
+  },
+  bannerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+  },
+  bannerButtonText: {
+    fontSize: 16,
+    fontFamily: typography.fontFamilyBold,
+    color: colors.textPrimary,
+    marginRight: spacing.sm,
+  },
+
+  // Category styles
+  categoriesContainer: {
     paddingHorizontal: spacing.md,
   },
   categoryCard: {
-    width: 80,
-    height: 80,
-    borderRadius: borderRadius.md,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-    ...shadows.small,
+    marginRight: spacing.md,
+    width: 100,
   },
-  categoryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  categoryGradient: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
+    ...shadows.medium,
   },
   categoryName: {
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 14,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.textPrimary,
     textAlign: 'center',
-    fontFamily: 'Inter_500Medium',
+    marginBottom: spacing.xs,
   },
-  productsList: {
+  categoryCount: {
+    fontSize: 12,
+    fontFamily: typography.fontFamily,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+
+  // Product styles
+  productsContainer: {
     paddingHorizontal: spacing.md,
   },
   productCard: {
-    width: 160,
+    backgroundColor: colors.card,
     borderRadius: borderRadius.md,
-    marginRight: spacing.sm,
+    marginRight: spacing.md,
+    width: 180,
     ...shadows.medium,
+  },
+  productImageContainer: {
     position: 'relative',
-  },
-  discountBadge: {
-    position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
-    backgroundColor: colors.primaryRed,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.xs,
-    paddingVertical: 2,
-    zIndex: 1,
-  },
-  discountText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '600',
-    fontFamily: 'Inter_700Bold',
   },
   productImage: {
     width: '100%',
-    height: 120,
+    height: 140,
     borderTopLeftRadius: borderRadius.md,
     borderTopRightRadius: borderRadius.md,
-    backgroundColor: colors.border,
   },
-  productInfo: {
+  productBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 4,
+    borderRadius: borderRadius.sm,
+  },
+  productBadgeText: {
+    fontSize: 10,
+    fontFamily: typography.fontFamilyBold,
+    color: colors.textPrimary,
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 20,
     padding: spacing.sm,
   },
+  productInfo: {
+    padding: spacing.md,
+  },
   productName: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: spacing.xs,
-    fontFamily: 'Inter_500Medium',
+    fontSize: 16,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+    minHeight: 40,
   },
   ratingContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.xs,
+    marginBottom: spacing.sm,
   },
-  rating: {
-    fontSize: 12,
-    marginLeft: 4,
-    fontFamily: 'Inter_400Regular',
+  ratingText: {
+    fontSize: 14,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.textPrimary,
+    marginLeft: spacing.xs,
+  },
+  reviewCount: {
+    fontSize: 14,
+    fontFamily: typography.fontFamily,
+    color: colors.textSecondary,
+    marginLeft: spacing.xs,
   },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.xs,
+    marginBottom: spacing.xs,
   },
   price: {
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: 'Inter_700Bold',
+    fontSize: 18,
+    fontFamily: typography.fontFamilyBold,
+    color: colors.primaryRed,
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: 14,
+    fontFamily: typography.fontFamily,
+    color: colors.textSecondary,
     textDecorationLine: 'line-through',
-    fontFamily: 'Inter_400Regular',
+    marginLeft: spacing.sm,
   },
-  quickActions: {
+  discountText: {
+    fontSize: 12,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.success,
+  },
+
+  // Quick actions styles
+  quickActionsGrid: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: spacing.md,
-    gap: spacing.sm,
+    justifyContent: 'space-between',
   },
   quickActionCard: {
-    flex: 1,
-    padding: spacing.md,
+    backgroundColor: colors.card,
     borderRadius: borderRadius.md,
+    padding: spacing.lg,
     alignItems: 'center',
+    width: (width - spacing.md * 3) / 2,
+    marginBottom: spacing.md,
     ...shadows.small,
   },
   quickActionText: {
-    fontSize: 12,
-    fontWeight: '500',
-    marginTop: spacing.xs,
+    fontSize: 14,
+    fontFamily: typography.fontFamilyMedium,
+    color: colors.textPrimary,
+    marginTop: spacing.sm,
     textAlign: 'center',
-    fontFamily: 'Inter_500Medium',
   },
 });
