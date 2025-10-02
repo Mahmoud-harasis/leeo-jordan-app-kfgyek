@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -204,11 +204,7 @@ export default function AIRecommendations({
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadRecommendations();
-  }, [userId, currentProductId, category]);
-
-  const loadRecommendations = async () => {
+  const loadRecommendations = useCallback(async () => {
     setLoading(true);
     try {
       // Simulate AI recommendation API call
@@ -299,7 +295,11 @@ export default function AIRecommendations({
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, currentProductId, category, maxItems]);
+
+  useEffect(() => {
+    loadRecommendations();
+  }, [loadRecommendations]);
 
   const getBadgeColor = (badge: Product['badge']) => {
     switch (badge) {

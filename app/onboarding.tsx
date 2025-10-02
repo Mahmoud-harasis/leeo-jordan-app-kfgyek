@@ -74,6 +74,47 @@ const onboardingData: OnboardingSlide[] = [
   },
 ];
 
+interface SlideComponentProps {
+  item: OnboardingSlide;
+  index: number;
+  scrollX: Animated.SharedValue<number>;
+  isArabic: boolean;
+}
+
+const SlideComponent: React.FC<SlideComponentProps> = ({ item, index, scrollX, isArabic }) => {
+  const slideAnimatedStyle = useAnimatedStyle(() => {
+    const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
+    const scale = interpolate(scrollX.value, inputRange, [0.8, 1, 0.8], Extrapolate.CLAMP);
+    const opacity = interpolate(scrollX.value, inputRange, [0.5, 1, 0.5], Extrapolate.CLAMP);
+
+    return {
+      transform: [{ scale }],
+      opacity,
+    };
+  });
+
+  return (
+    <Animated.View key={item.id} style={[styles.slide, slideAnimatedStyle]}>
+      <LinearGradient
+        colors={item.gradient}
+        style={styles.iconContainer}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <IconSymbol name={item.icon as any} size={80} color={colors.textPrimary} />
+      </LinearGradient>
+      
+      <Text style={[styles.title, isArabic && styles.arabicText]}>
+        {isArabic ? item.titleAr : item.title}
+      </Text>
+      
+      <Text style={[styles.description, isArabic && styles.arabicText]}>
+        {isArabic ? item.descriptionAr : item.description}
+      </Text>
+    </Animated.View>
+  );
+};
+
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isArabic, setIsArabic] = useState(true); // Default to Arabic for Jordan
@@ -114,40 +155,6 @@ export default function OnboardingScreen() {
     setIsArabic(!isArabic);
   };
 
-  const renderSlide = (item: OnboardingSlide, index: number) => {
-    const slideAnimatedStyle = useAnimatedStyle(() => {
-      const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
-      const scale = interpolate(scrollX.value, inputRange, [0.8, 1, 0.8], Extrapolate.CLAMP);
-      const opacity = interpolate(scrollX.value, inputRange, [0.5, 1, 0.5], Extrapolate.CLAMP);
-
-      return {
-        transform: [{ scale }],
-        opacity,
-      };
-    });
-
-    return (
-      <Animated.View key={item.id} style={[styles.slide, slideAnimatedStyle]}>
-        <LinearGradient
-          colors={item.gradient}
-          style={styles.iconContainer}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <IconSymbol name={item.icon as any} size={80} color={colors.textPrimary} />
-        </LinearGradient>
-        
-        <Text style={[styles.title, isArabic && styles.arabicText]}>
-          {isArabic ? item.titleAr : item.title}
-        </Text>
-        
-        <Text style={[styles.description, isArabic && styles.arabicText]}>
-          {isArabic ? item.descriptionAr : item.description}
-        </Text>
-      </Animated.View>
-    );
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor={colors.background} />
@@ -169,7 +176,15 @@ export default function OnboardingScreen() {
 
       {/* Slides */}
       <View style={styles.slidesContainer}>
-        {onboardingData.map((item, index) => renderSlide(item, index))}
+        {onboardingData.map((item, index) => (
+          <SlideComponent
+            key={item.id}
+            item={item}
+            index={index}
+            scrollX={scrollX}
+            isArabic={isArabic}
+          />
+        ))}
       </View>
 
       {/* Pagination Dots */}

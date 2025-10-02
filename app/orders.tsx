@@ -53,6 +53,68 @@ interface TrackingStep {
   icon: string;
 }
 
+interface TrackingStepComponentProps {
+  step: TrackingStep;
+  index: number;
+  isLast: boolean;
+  isArabic: boolean;
+}
+
+const TrackingStepComponent: React.FC<TrackingStepComponentProps> = ({ step, index, isLast, isArabic }) => {
+  const stepAnimation = useSharedValue(step.completed ? 1 : 0);
+  
+  const animatedStyle = useAnimatedStyle(() => {
+    const scale = interpolate(stepAnimation.value, [0, 1], [0.8, 1]);
+    const opacity = interpolate(stepAnimation.value, [0, 1], [0.5, 1]);
+    
+    return {
+      transform: [{ scale }],
+      opacity,
+    };
+  });
+
+  return (
+    <View key={step.id} style={styles.trackingStep}>
+      <View style={styles.trackingStepLeft}>
+        <Animated.View style={[animatedStyle]}>
+          <View style={[
+            styles.stepIcon,
+            step.completed && styles.stepIconCompleted,
+            step.active && styles.stepIconActive,
+          ]}>
+            <IconSymbol 
+              name={step.icon as any} 
+              size={20} 
+              color={step.completed ? colors.textPrimary : colors.textSecondary} 
+            />
+          </View>
+        </Animated.View>
+        {!isLast && (
+          <View style={[
+            styles.stepLine,
+            step.completed && styles.stepLineCompleted,
+          ]} />
+        )}
+      </View>
+      
+      <View style={styles.trackingStepContent}>
+        <Text style={[
+          styles.stepTitle,
+          step.completed && styles.stepTitleCompleted,
+        ]}>
+          {isArabic ? step.titleAr : step.title}
+        </Text>
+        <Text style={styles.stepDescription}>
+          {isArabic ? step.descriptionAr : step.description}
+        </Text>
+        {step.timestamp && (
+          <Text style={styles.stepTimestamp}>{step.timestamp}</Text>
+        )}
+      </View>
+    </View>
+  );
+};
+
 const mockOrders: Order[] = [
   {
     id: '1',
@@ -238,61 +300,6 @@ export default function OrdersScreen() {
     return isArabic ? statusMap[status].ar : statusMap[status].en;
   };
 
-  const renderTrackingStep = (step: TrackingStep, index: number, isLast: boolean) => {
-    const stepAnimation = useSharedValue(step.completed ? 1 : 0);
-    
-    const animatedStyle = useAnimatedStyle(() => {
-      const scale = interpolate(stepAnimation.value, [0, 1], [0.8, 1]);
-      const opacity = interpolate(stepAnimation.value, [0, 1], [0.5, 1]);
-      
-      return {
-        transform: [{ scale }],
-        opacity,
-      };
-    });
-
-    return (
-      <View key={step.id} style={styles.trackingStep}>
-        <View style={styles.trackingStepLeft}>
-          <Animated.View style={[animatedStyle]}>
-            <View style={[
-              styles.stepIcon,
-              step.completed && styles.stepIconCompleted,
-              step.active && styles.stepIconActive,
-            ]}>
-              <IconSymbol 
-                name={step.icon as any} 
-                size={20} 
-                color={step.completed ? colors.textPrimary : colors.textSecondary} 
-              />
-            </View>
-          </Animated.View>
-          {!isLast && (
-            <View style={[
-              styles.stepLine,
-              step.completed && styles.stepLineCompleted,
-            ]} />
-          )}
-        </View>
-        
-        <View style={styles.trackingStepContent}>
-          <Text style={[
-            styles.stepTitle,
-            step.completed && styles.stepTitleCompleted,
-          ]}>
-            {isArabic ? step.titleAr : step.title}
-          </Text>
-          <Text style={styles.stepDescription}>
-            {isArabic ? step.descriptionAr : step.description}
-          </Text>
-          {step.timestamp && (
-            <Text style={styles.stepTimestamp}>{step.timestamp}</Text>
-          )}
-        </View>
-      </View>
-    );
-  };
-
   const renderOrderCard = (order: Order) => (
     <Pressable
       key={order.id}
@@ -390,9 +397,15 @@ export default function OrdersScreen() {
               {isArabic ? 'تتبع الطلب' : 'Order Tracking'}
             </Text>
             <View style={styles.trackingContainer}>
-              {selectedOrder.trackingSteps.map((step, index) => 
-                renderTrackingStep(step, index, index === selectedOrder.trackingSteps.length - 1)
-              )}
+              {selectedOrder.trackingSteps.map((step, index) => (
+                <TrackingStepComponent
+                  key={step.id}
+                  step={step}
+                  index={index}
+                  isLast={index === selectedOrder.trackingSteps.length - 1}
+                  isArabic={isArabic}
+                />
+              ))}
             </View>
           </View>
 
