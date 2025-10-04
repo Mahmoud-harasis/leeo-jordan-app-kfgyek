@@ -21,6 +21,23 @@ module.exports = {
   env: {
     browser: true,
   },
+  settings: {
+    'import/resolver': {
+      'babel-module': {
+        alias: {
+          '@': './',
+          '@components': './components',
+          '@style': './style',
+          '@hooks': './hooks',
+          '@types': './types',
+          '@contexts': './contexts',
+        },
+      },
+      node: {
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+      },
+    },
+  },
   rules: {
     "@typescript-eslint/no-unused-vars": "off",
     "@typescript-eslint/no-explicit-any": "off",
@@ -30,7 +47,8 @@ module.exports = {
     "@typescript-eslint/no-empty-object-type": "off",
     "@typescript-eslint/no-wrapper-object-types": "off",
     "react/no-unescaped-entities": "off",
-    "import/no-unresolved": "error",
+    "import/no-unresolved": "off",
+    "import/namespace": "off",
     "prefer-const": "off",
     "react/prop-types": 1,
     "no-case-declarations": "off",

@@ -161,6 +161,21 @@ const MAPPING = {
   "lightbulb.fill": "lightbulb",
   "moon.fill": "dark-mode",
   "sun.max.fill": "light-mode",
+
+  // AI & Technology
+  "brain.head.profile": "psychology",
+  "sparkles": "auto-awesome",
+  "wand.and.stars": "auto-fix-high",
+
+  // Additional Icons
+  "list.clipboard": "assignment",
+  "list.bullet": "format-list-bulleted",
+  "bolt.fill": "flash-on",
+  "bolt": "flash-off",
+  "figure.run": "directions-run",
+  "tshirt": "checkroom",
+  "book": "menu-book",
+  "iphone": "smartphone",
 } as Partial<
   Record<
     import("expo-symbols").SymbolViewProps["name"],

@@ -295,7 +295,7 @@ export default function AIRecommendations({
     } finally {
       setLoading(false);
     }
-  }, [userId, currentProductId, category, maxItems]);
+  }, [currentProductId, maxItems]);
 
   useEffect(() => {
     loadRecommendations();
